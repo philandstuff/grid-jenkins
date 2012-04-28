@@ -1,7 +1,6 @@
 (ns grid-jenkins.core
   (:use [overtone.device protocols launchpad])
-  (:require [clj-json.core :as json]
-            [clj-http.client :as http]
+  (:require [clj-http.client :as http]
             [overtone.libs.handlers :as handlers]
             [clojure.java.browse :as browse]))
 
@@ -18,7 +17,7 @@
     (str url "api/json")
     (str url "/api/json")))
 
-(def color
+(def default-color
   {"red"        1
    "red_anime"  1
    "yellow"     1
@@ -30,14 +29,14 @@
    "disabled"   3
    })
 
+(defn lp-color [jenkins-color]
+  (get default-color jenkins-color 1))
+
 (defn update-lp [lp jobs]
   (doseq [y (range 8)
           x (range 8)]
     (if-let [job (get @button-state [x y])]
-      (let [colour (get color (get job :color) 1)]
-        (when (not (contains? color (get job :color)))
-          (print "don't understand color from" job))
-        (light-colour lp x y colour))
+      (light-colour lp x y (lp-color (:color job)))
       (light-colour lp x y 0))))
 
 (defn update-state [lp jobs]
