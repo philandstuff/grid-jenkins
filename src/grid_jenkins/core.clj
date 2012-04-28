@@ -9,7 +9,9 @@
 
 (defonce button-state (atom {}))
 
-(def jenkins-base-url "http://jenkins/")
+(defonce http-agent (agent nil))
+
+(def jenkins-base-url "http://ci.jruby.org/")
 
 (defn json-url [url]
   (if (= \/ (last (seq url)))
@@ -42,14 +44,12 @@
   (reset! button-state (zipmap (for [y (range 8) x (range 8)] [x y]) jobs))
   (update-lp lp jobs))
 
-(defonce a (agent nil))
-
-(defn timer-loop [_]
+(defn poll-jenkins-loop [_]
   (let [jenkins-status-response (http/get (json-url @#'jenkins-base-url) {:as :json})
         jobs (get-in jenkins-status-response [:body :jobs])]
     (update-state lp jobs)
     (Thread/sleep (* 10 6000))
-    (send-off *agent* timer-loop)
+    (send-off *agent* poll-jenkins-loop)
     jenkins-status-response))
 
 (defn key-event [event]
@@ -60,5 +60,5 @@
 
 (defn start []
   (handlers/add-handler! (:handler-pool lp) :launchpad-key :jenkins key-event)
-  (send-off a timer-loop))
+  (send-off http-agent poll-jenkins-loop))
 
