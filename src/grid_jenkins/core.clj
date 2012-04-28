@@ -7,8 +7,6 @@
 
 (defonce lp (make-launchpad))
 
-(def jenkins-status (json/parse-string (slurp "/Users/philippotter/example-jenkins-build.json")))
-
 (defonce button-state (atom {}))
 
 (def jenkins-base-url "http://jenkins/")
