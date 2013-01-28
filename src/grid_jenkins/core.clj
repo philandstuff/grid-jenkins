@@ -4,7 +4,7 @@
             [coremidi-clj.coremidi.native :as coremidi.native]
             [clojure.java.browse :as browse]))
 
-(defonce lp (coremidi/midi-out "Launchpad"))
+(defonce lp-out (coremidi/midi-out "Launchpad"))
 
 (defonce button-state (atom {}))
 
@@ -61,7 +61,7 @@
 (defn poll-jenkins-loop [_]
   (let [jenkins-status-response (http/get (json-url @#'jenkins-base-url) {:as :json})
         jobs (get-in jenkins-status-response [:body :jobs])]
-    (update-state lp jobs)
+    (update-state lp-out jobs)
     (Thread/sleep (* 10 6000))
     (send-off *agent* poll-jenkins-loop)
     jenkins-status-response))
@@ -73,6 +73,6 @@
         (browse/browse-url url)))))
 
 (defn start []
-  #_(handlers/add-handler! (:handler-pool lp) :launchpad-key :jenkins key-event)
+  #_(handlers/add-handler! (:handler-pool lp-in) :launchpad-key :jenkins key-event)
   (send-off http-agent poll-jenkins-loop))
 
