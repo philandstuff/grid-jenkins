@@ -1,10 +1,10 @@
 (ns grid-jenkins.core
-  (:use [overtone.device protocols launchpad])
   (:require [clj-http.client :as http]
-            [overtone.libs.handlers :as handlers]
+            [coremidi-clj.coremidi :as coremidi]
+            [coremidi-clj.coremidi.native :as coremidi.native]
             [clojure.java.browse :as browse]))
 
-(defonce lp (make-launchpad))
+(defonce lp (coremidi/midi-out "Launchpad"))
 
 (defonce button-state (atom {}))
 
@@ -18,19 +18,34 @@
     (str url "/api/json")))
 
 (def default-color
-  {"red"        1
-   "red_anime"  1
-   "yellow"     1
-   "yellow_anime" 1
-   "blue"       2
-   "blue_anime" 2
-   "grey"       3
-   "grey_anime" 3
-   "disabled"   3
+  {"red"        :red
+   "red_anime"  :red-dim
+   "yellow"     :yellow
+   "yellow_anime" :yellow-dim
+   "blue"       :green
+   "blue_anime" :green-dim
+   "grey"       :off
+   "grey_anime" :off
+   "disabled"   :off
    })
 
+(def color-map
+  {:red        4r033
+   :red-dim    4r031
+   :yellow     4r333
+   :yellow-dim 4r131
+   :green      4r330
+   :green-dim  4r130
+   :off        4r030})
+
 (defn lp-color [jenkins-color]
-  (get default-color jenkins-color 1))
+  (color-map (get default-color jenkins-color :off)))
+
+(defn coords->midi-note [x y]
+  (+ x (* 16 y)))
+
+(defn light-colour [lp x y colour]
+  (coremidi/midi-note-on lp (coords->midi-note x y) colour))
 
 (defn update-lp [lp jobs]
   (doseq [y (range 8)
@@ -58,6 +73,6 @@
         (browse/browse-url url)))))
 
 (defn start []
-  (handlers/add-handler! (:handler-pool lp) :launchpad-key :jenkins key-event)
+  #_(handlers/add-handler! (:handler-pool lp) :launchpad-key :jenkins key-event)
   (send-off http-agent poll-jenkins-loop))
 
