@@ -1,10 +1,10 @@
 (ns grid-jenkins.core
   (:require [clj-http.client :as http]
             [coremidi-clj.coremidi :as coremidi]
-            [coremidi-clj.coremidi.native :as coremidi.native]
             [clojure.java.browse :as browse]))
 
 (defonce lp-out (coremidi/midi-out "Launchpad"))
+(defonce lp-in  (coremidi/midi-in  "Launchpad"))
 
 (defonce button-state (atom {}))
 
@@ -67,12 +67,14 @@
     jenkins-status-response))
 
 (defn key-event [event]
-  (when (= (:event event) :press)
-    (let [key (:key event)]
-      (when-let [url (get-in @button-state [key :url])]
+  (when (= (:cmd event) :note-on)
+    (let [pitch (:pitch event)
+          x     (mod pitch 16)
+          y     (bit-shift-right pitch 16)]
+      (when-let [url (get-in @button-state [[x y] :url])]
         (browse/browse-url url)))))
 
 (defn start []
-  #_(handlers/add-handler! (:handler-pool lp-in) :launchpad-key :jenkins key-event)
+  (coremidi/midi-handle-events lp-in (fn [packet ts] (key-event packet)))
   (send-off http-agent poll-jenkins-loop))
 
